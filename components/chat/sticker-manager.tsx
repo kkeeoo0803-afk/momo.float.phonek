@@ -523,7 +523,7 @@ function PackEditor({ pack, onBack }: { pack: StickerPack; onBack: () => void })
 
                 {/* Character assignment section */}
                 <div className="px-6 pt-4 pb-2 shrink-0">
-                    <div className="text-[calc(12px*var(--app-text-scale,1))] font-bold text-[var(--c-text)] opacity-60 uppercase mb-3 px-1 tracking-[0.1em]">角色绑定</div>
+                    <div className="text-[calc(12px*var(--app-text-scale,1))] font-bold text-[var(--c-text)] opacity-60 uppercase mb-3 px-1 tracking-[0.1em]">智能角色绑定</div>
                     <div className="flex flex-wrap gap-2.5 px-1">
                         {characters.map(c => {
                             const active = assignedCharIds.includes(c.id);
