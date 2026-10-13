@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { loadStickerPacksForCharacters, resolvePackStickerMap, type StickerPack } from "@/lib/custom-sticker-storage";
+import { loadStickerPacks, resolvePackStickerMap, type StickerPack } from "@/lib/custom-sticker-storage";
 import { BUILTIN_SCREEN_EFFECTS, loadBuiltinScreenEffectSettings } from "@/lib/chat-screen-effects";
 
 // ── Emoji categories ─────────────────────────────
@@ -141,15 +141,9 @@ export function StickerPanel({ onSend, characterId, characterIds }: StickerPanel
     const [packUrlMap, setPackUrlMap] = useState<Record<string, string>>({});
 
     useEffect(() => {
-        const ids = characterIds && characterIds.length > 0 ? characterIds : characterId ? [characterId] : [];
-        if (ids.length === 0) {
-            setStickerPacks([]);
-            setActivePackId(null);
-            setPackUrlMap({});
-            return;
-        }
         let cancelled = false;
-        const packs = loadStickerPacksForCharacters(ids).filter(pack => pack.stickers.length > 0);
+        // 用户表情包全角色通用：无论当前跟哪个角色聊天，用户均可浏览所有包含表情的图集
+        const packs = loadStickerPacks().filter(pack => pack.stickers.length > 0);
         setStickerPacks(packs);
         setActivePackId(prev => (prev && packs.some(pack => pack.id === prev) ? prev : packs[0]?.id ?? null));
         Promise.all(packs.map(async pack => [pack.id, await resolvePackStickerMap(pack)] as const)).then(entries => {
@@ -186,7 +180,7 @@ export function StickerPanel({ onSend, characterId, characterIds }: StickerPanel
             <div className="flex-1 overflow-auto p-2 grid grid-cols-5 gap-1 content-start hide-scrollbar">
                 {!activePack && (
                     <div className="col-span-5 flex items-center justify-center text-[var(--c-text-muted)] ts-12 py-8">
-                        暂无表情包，请在角色设置里上传或绑定。
+                        暂无表情包，请前往「我 → 表情包仓储」添加表情。
                     </div>
                 )}
                 {activePack?.stickers.map(sticker => {

@@ -523,7 +523,17 @@ function PackEditor({ pack, onBack }: { pack: StickerPack; onBack: () => void })
 
                 {/* Character assignment section */}
                 <div className="px-6 pt-4 pb-2 shrink-0">
-                    <div className="text-[calc(12px*var(--app-text-scale,1))] font-bold text-[var(--c-text)] opacity-60 uppercase mb-3 px-1 tracking-[0.1em]">智能角色绑定</div>
+                    <div className="flex items-center justify-between mb-2 px-1">
+                        <div className="text-[calc(12px*var(--app-text-scale,1))] font-bold text-[var(--c-text)] opacity-60 uppercase tracking-[0.1em]">
+                            角色专属授权（AI 使用权）
+                        </div>
+                        <span className="ts-11 text-[var(--c-text)] opacity-50">
+                            {assignedCharIds.length > 0 ? `已指定 ${assignedCharIds.length} 个角色可用` : "仅我可用（角色不发）"}
+                        </span>
+                    </div>
+                    <div className="text-[calc(11px*var(--app-text-scale,1))] text-[var(--c-text)] opacity-55 mb-2.5 px-1 leading-relaxed">
+                        💡 <b>规则说明</b>：你自己永远可以使用此表情包。只有在这里被点亮的特定角色，才会在聊天中被赋予发送此表情包的权限；未勾选的角色绝对不会偷用这套表情。
+                    </div>
                     <div className="flex flex-wrap gap-2.5 px-1">
                         {characters.map(c => {
                             const active = assignedCharIds.includes(c.id);
