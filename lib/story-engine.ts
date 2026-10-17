@@ -99,7 +99,7 @@ function buildStorySettingsPrompt(
     status?.prompt?.trim() || "",
     theater?.prompt?.trim() || "",
     effective.actionOptionsEnabled ? `# 行动分支选项输出规范
-正文描写结束后，必须换行以 <story_options> 标签输出 4 个供用户推进的行动分支。
+必须在整段回复的最末尾（在正文、状态栏和小剧场全部输出完毕之后），换行以 <story_options> 标签输出 4 个供用户推进的行动分支。
 格式严格遵循如下结构（禁止写代码块，每个选项单独占一行，不要带数字序号或标号）：
 <story_options>
 <option>正面回应或直接行动的纯文本描述</option>

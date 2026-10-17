@@ -130,18 +130,34 @@ function StoryFoldBlock({ label, content, scopeClass, children }: {
 
 function splitContent(text: string): Segment[] {
     if (!text) return [];
+
+    // 如果文本中包含 <story_options>，将其提取并始终置于最后渲染，确保出现在小剧场和状态栏的下方
+    let processedText = text;
+    let extractedOptions: string | null = null;
+    const optionsMatch = text.match(/<story_options>[\s\S]*?<\/story_options>/i);
+    if (optionsMatch) {
+        extractedOptions = optionsMatch[0];
+        processedText = text.replace(optionsMatch[0], "").trim();
+    }
+
     const segments: Segment[] = [];
     const foldRx = /<!--RHR-FOLD:([^>]+)-->\s*([\s\S]*?)\s*<!--\/RHR-FOLD-->/g;
     let lastIndex = 0;
     let match: RegExpExecArray | null;
 
-    while ((match = foldRx.exec(text)) !== null) {
-        segments.push(...splitNonFoldContent(text.slice(lastIndex, match.index)));
+    while ((match = foldRx.exec(processedText)) !== null) {
+        segments.push(...splitNonFoldContent(processedText.slice(lastIndex, match.index)));
         const content = match[2].trim();
         if (content) segments.push({ type: "fold", label: match[1] || "fold", content });
         lastIndex = match.index + match[0].length;
     }
-    segments.push(...splitNonFoldContent(text.slice(lastIndex)));
+    segments.push(...splitNonFoldContent(processedText.slice(lastIndex)));
+
+    // 将选项追加到最末尾
+    if (extractedOptions) {
+        segments.push(...splitNonFoldContent(extractedOptions));
+    }
+
     return segments;
 }
 
