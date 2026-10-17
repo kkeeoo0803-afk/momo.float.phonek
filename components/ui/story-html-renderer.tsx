@@ -270,14 +270,18 @@ function MarkdownSegment({
             const token = `STORYOPTIONSPLACEHOLDER${semanticPlaceholders.length}END`;
             const buttons: string[] = [];
             const optionMatches = inner.matchAll(/<option[^>]*>([\s\S]*?)<\/option>/gi);
+            let optionIndex = 1;
             for (const match of optionMatches) {
                 const rawText = match[1].trim();
-                // 彻底清洗大模型可能输出的开头序号（如 "① "、"1. "、"1、"、"【选项一】" 等），确保纯净无杂质
+                // 彻底剥离可能存在的开头序号或“行动一：”等字眼，确保填入输入框的内容纯净
                 const cleanedText = rawText
-                    .replace(/^(?:[①②③④⑤⑥⑦⑧⑨⑩]|\d+[\.、\s\-:]+|【?选项[一二三四1-4]?】?[\s\-:]*)/iu, "")
+                    .replace(/^(?:[①②③④⑤⑥⑦⑧⑨⑩]|\d+[\.、\s\-:]+|【?(?:选项|行动)[一二三四1-4]?】?[\s\-:：]*)/iu, "")
                     .trim() || rawText;
                 const safeAttr = escapeHtmlAttribute(cleanedText);
-                buttons.push(`<button type="button" class="story-action-option-btn" data-action="${safeAttr}">${escapeHtmlAttribute(cleanedText)}</button>`);
+                // 按钮表面显示简洁的序号 "1. "、"2. "，但 data-action 填入输入框的是纯净的动作内容
+                const displayLabel = `${optionIndex}. ${cleanedText}`;
+                buttons.push(`<button type="button" class="story-action-option-btn" data-action="${safeAttr}">${escapeHtmlAttribute(displayLabel)}</button>`);
+                optionIndex++;
             }
             if (!buttons.length) return "";
             semanticPlaceholders.push({

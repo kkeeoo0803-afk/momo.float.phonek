@@ -102,10 +102,10 @@ function buildStorySettingsPrompt(
 正文描写结束后，必须换行以 <story_options> 标签输出 4 个供用户推进的行动分支。
 格式严格遵循如下结构（禁止写代码块，每个选项单独占一行，不要带数字序号或标号）：
 <story_options>
-<option>行动一：正面回应或直接行动</option>
-<option>行动二：调查细节或寻找线索</option>
-<option>行动三：试探性对话或深入询问</option>
-<option>行动四：出人意料的举动或避开风险</option>
+<option>正面回应或直接行动的纯文本描述</option>
+<option>调查细节或寻找线索的纯文本描述</option>
+<option>试探性对话或深入询问的纯文本描述</option>
+<option>出人意料的举动或避开风险的纯文本描述</option>
 </story_options>` : "",
   ].filter(Boolean).join("\n");
 }
