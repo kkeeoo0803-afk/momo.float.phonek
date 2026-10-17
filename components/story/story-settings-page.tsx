@@ -80,6 +80,7 @@ function normalizeSettings(value: StoryCharacterSettings, repo: StorySchemeRepos
     activeTheaterSchemeId: repo.theaterSchemes.some((item) => item.id === value.activeTheaterSchemeId)
       ? value.activeTheaterSchemeId
       : repo.theaterSchemes[0].id,
+    actionOptionsEnabled: Boolean(value.actionOptionsEnabled),
   };
 }
 
@@ -664,6 +665,12 @@ export function StorySettingsPage(props: StorySettingsPageProps) {
         </SettingCard>
 
         <SettingCard title="生成设置" hint="检查预设条目与生成设置是否重复">
+          <ToggleRow
+            title="生成行动分支选项"
+            detail="开启后正文末尾自动提供 4 个可推进的实体选项方框，点击即填入输入框，绝不掉格式"
+            checked={Boolean(normalized.actionOptionsEnabled)}
+            onChange={(value) => patchSettings({ actionOptionsEnabled: value })}
+          />
           <div className="story-generation-three-grid">
             <label className="story-generation-control"><span>用户人称</span><select value={normalized.userPerspective} onChange={(event) => patchSettings({ userPerspective: event.target.value as StoryCharacterSettings["userPerspective"] })}><option value="second">第二人称“你”</option><option value="third">第三人称“TA”</option><option value="username">用户名“{props.userName}”</option></select></label>
             <label className="story-generation-control"><span>正文文风</span><select value={normalized.activeProseStyleSchemeId} onChange={(event) => patchSettings({ activeProseStyleSchemeId: event.target.value })}>{repo.proseStyleSchemes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
