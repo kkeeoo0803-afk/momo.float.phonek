@@ -397,6 +397,8 @@ export type StoryCharacterSettings = {
   activeStatusSchemeId?: string;
   /** 当前角色启用的小剧场方案（存于公用方案仓库），仅保存选择。 */
   activeTheaterSchemeId?: string;
+  /** 每次剧情回复结尾是否自动生成 4 个可推进的实体行动选项按钮 */
+  actionOptionsEnabled?: boolean;
   /** @deprecated 旧版按角色保存的文风方案列表；已迁移进公用方案仓库。 */
   proseStyleSchemes?: StoryProseStyleScheme[];
   /** @deprecated 旧版按角色保存的状态栏方案列表；已迁移进公用方案仓库。 */

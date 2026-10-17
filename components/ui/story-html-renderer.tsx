@@ -265,11 +265,33 @@ function MarkdownSegment({
             return token;
         });
 
+        // 原生解析 <story_options> 标签：自动转为实体美化按钮，并自动剥离开头的数字/序号标号
+        const optionsPrepared = scenePrepared.replace(/<story_options>([\s\S]*?)<\/story_options>/gi, (_whole, inner: string) => {
+            const token = `STORYOPTIONSPLACEHOLDER${semanticPlaceholders.length}END`;
+            const buttons: string[] = [];
+            const optionMatches = inner.matchAll(/<option[^>]*>([\s\S]*?)<\/option>/gi);
+            for (const match of optionMatches) {
+                const rawText = match[1].trim();
+                // 彻底清洗大模型可能输出的开头序号（如 "① "、"1. "、"1、"、"【选项一】" 等），确保纯净无杂质
+                const cleanedText = rawText
+                    .replace(/^(?:[①②③④⑤⑥⑦⑧⑨⑩]|\d+[\.、\s\-:]+|【?选项[一二三四1-4]?】?[\s\-:]*)/iu, "")
+                    .trim() || rawText;
+                const safeAttr = escapeHtmlAttribute(cleanedText);
+                buttons.push(`<button type="button" class="story-action-option-btn" data-action="${safeAttr}">${escapeHtmlAttribute(cleanedText)}</button>`);
+            }
+            if (!buttons.length) return "";
+            semanticPlaceholders.push({
+                token,
+                html: `<div class="story-action-options-group" role="group" aria-label="推进剧情行动分支">${buttons.join("")}</div>`,
+            });
+            return token;
+        });
+
         // 允许直接渲染用户定义的任意 <story_xxxx> 标签并支持其内部的 HTML
         // 此处不再强制转义替换，而是让它们作为合法的 HTML 标签保留下来。
         // 为了防止它们在后续被 sanitize 掉，我们需要把它们暂时替换为特殊占位符，
         // 等 sanitize 完毕后再还原。
-        let customTagsPrepared = scenePrepared;
+        let customTagsPrepared = optionsPrepared;
         const customTagPlaceholders: Array<{ token: string; html: string }> = [];
         
         customTagsPrepared = customTagsPrepared.replace(/<(story_[a-zA-Z0-9_-]+)([^>]*)>([\s\S]*?)<\/\1>/g, (wholeMatch, tagName, attrs, innerHTML) => {

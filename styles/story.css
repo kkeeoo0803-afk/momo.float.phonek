@@ -1734,3 +1734,39 @@
           .story-branch-memory { padding:6px 5px; font-size:calc(7.5px*var(--app-text-scale,1)); }
           .story-group-picker { grid-template-columns:1fr; }
         }
+
+        /* 原生行动分支选项方框样式 */
+        .story-action-options-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8.5px;
+          margin-top: 14px;
+          margin-bottom: 6px;
+        }
+        .story-action-option-btn {
+          display: block;
+          width: 100%;
+          margin: 0;
+          padding: 10.5px 14px;
+          background: color-mix(in srgb, var(--c-story-card, #ffffff) 88%, transparent);
+          border: 1px solid rgba(148, 163, 184, 0.28);
+          border-radius: 12px;
+          text-align: left;
+          font-family: var(--story-font);
+          font-size: calc(12.5px * var(--app-text-scale, 1));
+          line-height: 1.5;
+          color: var(--c-story-text, #334155);
+          box-shadow: 0 1.5px 4px rgba(15, 23, 42, 0.04);
+          cursor: pointer;
+          box-sizing: border-box;
+          transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .story-action-option-btn:hover {
+          background: color-mix(in srgb, var(--c-story-card, #ffffff) 98%, transparent);
+          border-color: rgba(148, 163, 184, 0.45);
+        }
+        .story-action-option-btn:active {
+          transform: scale(0.985);
+          background: color-mix(in srgb, var(--c-story-heading, #1e293b) 8%, var(--c-story-card, #ffffff));
+        }

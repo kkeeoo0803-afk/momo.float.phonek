@@ -26,7 +26,7 @@ import { formatCharacterRelationsForPrompt } from "./character-world-storage";
 import { formatPromptTimestamp } from "./prompt-time";
 
 const DEFAULT_STORY_FOLD_TAGS = "think,thinking,summary,story_status,story_theater";
-const DEFAULT_STORY_CONTEXT_EXCLUDED_TAGS = "think,thinking,story_theater";
+const DEFAULT_STORY_CONTEXT_EXCLUDED_TAGS = "think,thinking,story_theater,story_options";
 const STORY_VOICE_FORMAT_PROMPT = `# 剧情正文格式
 请使用与“独家特调”一致的正文语义格式：
 - 「对白」：仅包裹角色真正说出口的人声；每次说话分别包裹，不要在括号内重复角色名。
@@ -98,6 +98,15 @@ function buildStorySettingsPrompt(
     ...(effective.customPromptEntries || []).filter((item) => item.enabled && item.content.trim()).map((item) => `专属条目【${item.name || "未命名"}】：${item.content.trim()}`),
     status?.prompt?.trim() || "",
     theater?.prompt?.trim() || "",
+    effective.actionOptionsEnabled ? `# 行动分支选项输出规范
+正文描写结束后，必须换行以 <story_options> 标签输出 4 个供用户推进的行动分支。
+格式严格遵循如下结构（禁止写代码块，每个选项单独占一行，不要带数字序号或标号）：
+<story_options>
+<option>行动一：正面回应或直接行动</option>
+<option>行动二：调查细节或寻找线索</option>
+<option>行动三：试探性对话或深入询问</option>
+<option>行动四：出人意料的举动或避开风险</option>
+</story_options>` : "",
   ].filter(Boolean).join("\n");
 }
 
