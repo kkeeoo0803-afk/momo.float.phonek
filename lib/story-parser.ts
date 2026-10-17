@@ -122,7 +122,13 @@ export function parseStoryResponse(
   }
 
   const folded = applyFoldTags(reasoningProcessed, options?.foldTags);
-  const renderedText = folded
+  // 彻底把 <story_options> 移动到 renderedText 的最末尾（在所有折叠块后面）
+  let finalRendered = folded;
+  const optMatch = finalRendered.match(/<story_options>[\s\S]*?<\/story_options>/i);
+  if (optMatch) {
+    finalRendered = finalRendered.replace(optMatch[0], "").trim() + "\n\n" + optMatch[0];
+  }
+  const renderedText = finalRendered
     .replace(/\r\n/g, "\n")
     .replace(/\n{4,}/g, "\n\n\n")
     .trim();

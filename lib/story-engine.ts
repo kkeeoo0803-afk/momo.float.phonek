@@ -98,15 +98,7 @@ function buildStorySettingsPrompt(
     ...(effective.customPromptEntries || []).filter((item) => item.enabled && item.content.trim()).map((item) => `专属条目【${item.name || "未命名"}】：${item.content.trim()}`),
     status?.prompt?.trim() || "",
     theater?.prompt?.trim() || "",
-    effective.actionOptionsEnabled ? `# 行动分支选项输出规范
-必须在整段回复的最末尾（在正文、状态栏和小剧场全部输出完毕之后），换行以 <story_options> 标签输出 4 个供用户推进的行动分支。
-格式严格遵循如下结构（禁止写代码块，每个选项单独占一行，不要带数字序号或标号）：
-<story_options>
-<option>正面回应或直接行动的纯文本描述</option>
-<option>调查细节或寻找线索的纯文本描述</option>
-<option>试探性对话或深入询问的纯文本描述</option>
-<option>出人意料的举动或避开风险的纯文本描述</option>
-</story_options>` : "",
+
   ].filter(Boolean).join("\n");
 }
 
@@ -452,6 +444,26 @@ async function buildStoryPromptMessages(
     messages.push({ role: "system", content: `# 悬浮小手机最近线上聊天\n以下记录用于衔接线上与线下剧情，不要逐字复述：\n${floatingChatContext.trim()}` });
   }
   messages.push({ role: "system", content: STORY_VOICE_FORMAT_PROMPT });
+  if (settings?.actionOptionsEnabled) {
+    messages.push({
+      role: "system",
+      content: `# 最终输出顺序绝对强制要求
+你的回复必须按以下顺序排列，任何情况下严禁颠倒：
+1. 剧情正文
+2. 状态栏（如有，<story_status>...</story_status>）
+3. 小剧场（如有，<story_theater>...</story_theater>）
+4. 行动选项（<story_options>...</story_options>）
+
+特别注意：<story_options> 必须作为整段回复的【绝对最后一项内容】输出在最底部！
+格式严格如下（每个选项单独一行，纯文本描述，严禁添加序号或标号）：
+<story_options>
+<option>正面回应或直接行动的纯文本描述</option>
+<option>调查细节或寻找线索的纯文本描述</option>
+<option>试探性对话或深入询问的纯文本描述</option>
+<option>出人意料的举动或避开风险的纯文本描述</option>
+</story_options>`,
+    });
+  }
   return messages;
 }
 
