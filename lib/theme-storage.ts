@@ -215,29 +215,59 @@ async function saveAssetRecord(record: ThemeAssetRecord): Promise<void> {
 
   try {
     const transaction = database.transaction(THEME_ASSET_STORE, "readwrite");
-    const store = transaction.objectStore(THEME_ASSET_STORE);
-    store.put(record);
-    await runTransactionDone(transaction);
+    const done = runTransactionDone(transaction);
+    transaction.objectStore(THEME_ASSET_STORE).put(record);
+    await done;
+  } finally {
+    database.close();
+  }
+}
+
+export async function readThemeAssetRecords(ids: string[]): Promise<ThemeAssetRecord[]> {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  const database = await openThemeDb();
+  if (!database) {
+    return [];
+  }
+
+  try {
+    return await new Promise<ThemeAssetRecord[]>((resolve, reject) => {
+      const transaction = database.transaction(THEME_ASSET_STORE, "readonly");
+      const store = transaction.objectStore(THEME_ASSET_STORE);
+      const results: ThemeAssetRecord[] = [];
+
+      // 先挂完成/错误回调，绝不能在 await 请求后再挂，防止事务已提交回调永不触发
+      transaction.oncomplete = () => {
+        resolve(results);
+      };
+      transaction.onerror = () => {
+        reject(transaction.error);
+      };
+      transaction.onabort = () => {
+        reject(transaction.error);
+      };
+
+      for (const id of uniqueIds) {
+        const request = store.get(id);
+        request.onsuccess = () => {
+          if (request.result) {
+            results.push(request.result as ThemeAssetRecord);
+          }
+        };
+      }
+    });
   } finally {
     database.close();
   }
 }
 
 async function readAssetRecord(id: string): Promise<ThemeAssetRecord | null> {
-  const database = await openThemeDb();
-  if (!database) {
-    return null;
-  }
-
-  try {
-    const transaction = database.transaction(THEME_ASSET_STORE, "readonly");
-    const store = transaction.objectStore(THEME_ASSET_STORE);
-    const result = await runRequest(store.get(id));
-    await runTransactionDone(transaction);
-    return (result as ThemeAssetRecord | undefined) ?? null;
-  } finally {
-    database.close();
-  }
+  const records = await readThemeAssetRecords([id]);
+  return records[0] ?? null;
 }
 
 export async function getThemeAssetDataUrl(id: string): Promise<string | null> {
@@ -252,20 +282,14 @@ export async function getThemeAssetMap(ids: string[]): Promise<Record<string, st
   uniqueIds.forEach((id) => {
     if (/^(?:https?:|data:|blob:)/i.test(id)) map[id] = id;
   });
-  const rows = await Promise.all(storedIds.map((id) => readAssetRecord(id)));
+  if (storedIds.length === 0) {
+    return map;
+  }
+  const rows = await readThemeAssetRecords(storedIds);
   rows.forEach((row) => {
-    if (!row) {
-      return;
-    }
     map[row.id] = row.dataUrl;
   });
   return map;
-}
-
-export async function readThemeAssetRecords(ids: string[]): Promise<ThemeAssetRecord[]> {
-  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
-  const rows = await Promise.all(uniqueIds.map((id) => readAssetRecord(id)));
-  return rows.filter((row): row is ThemeAssetRecord => Boolean(row));
 }
 
 export async function writeThemeAssetRecords(records: ThemeAssetRecord[]): Promise<void> {
@@ -295,8 +319,9 @@ export async function deleteThemeAsset(id: string): Promise<void> {
   }
   try {
     const transaction = database.transaction(THEME_ASSET_STORE, "readwrite");
+    const done = runTransactionDone(transaction);
     transaction.objectStore(THEME_ASSET_STORE).delete(id);
-    await runTransactionDone(transaction);
+    await done;
   } finally {
     database.close();
   }

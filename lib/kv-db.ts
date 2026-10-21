@@ -119,10 +119,15 @@ export function hydrateKvDb(): Promise<void> {
     if (_hydrated || typeof window === "undefined") return Promise.resolve();
     if (_hydratePromise) return _hydratePromise;
     _hydratePromise = (async () => {
-        // Load existing IDB data into cache
+        // Load existing IDB data into cache (chunked yielding to keep main thread responsive)
         const all = await kvDb.entries.toArray();
+        let chunkCount = 0;
         for (const { key, value } of all) {
             if (!_cache.has(key)) _cache.set(key, value);
+            chunkCount++;
+            if (chunkCount % 300 === 0) {
+                await new Promise((resolve) => setTimeout(resolve, 0));
+            }
         }
 
         // Migrate from localStorage

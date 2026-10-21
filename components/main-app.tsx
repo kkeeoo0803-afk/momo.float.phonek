@@ -134,19 +134,50 @@ async function cacheFontUrl(url: string): Promise<void> {
   await response.arrayBuffer();
 }
 
-async function warmBuiltinFonts(shouldStop: () => boolean): Promise<void> {
+const ESSENTIAL_FONT_URLS = [
+  "/fonts/splash/inter-400.woff2",
+  "/fonts/splash/instrument-serif-regular-400.woff2",
+  "/fonts/splash/jetbrains-mono-400.woff2",
+  "/fonts/huiwen.woff2",
+] as const;
+
+const ESSENTIAL_FONT_LOAD_SPECS = [
+  '400 1em "Inter"',
+  '400 1em "Instrument Serif"',
+  '400 1em "JetBrains Mono"',
+  '400 1em "Huiwen"',
+] as const;
+
+async function warmEssentialFonts(shouldStop: () => boolean): Promise<void> {
   if (typeof window === "undefined") return;
 
-  for (let index = 0; index < BUILTIN_FONT_URLS.length; index += FONT_CACHE_BATCH_SIZE) {
-    if (shouldStop()) return;
-    const batch = BUILTIN_FONT_URLS.slice(index, index + FONT_CACHE_BATCH_SIZE);
-    await Promise.all(batch.map((url) => cacheFontUrl(url).catch(() => undefined)));
-    if (shouldStop()) return;
-    await wait(FONT_CACHE_BATCH_DELAY_MS);
-  }
+  const prewarmTask = (async () => {
+    try {
+      if (shouldStop()) return;
+      await Promise.all(ESSENTIAL_FONT_URLS.map((url) => cacheFontUrl(url).catch(() => undefined)));
+      if (shouldStop() || !document.fonts) return;
+      await Promise.all(ESSENTIAL_FONT_LOAD_SPECS.map((spec) => document.fonts.load(spec).catch(() => [])));
+    } catch {
+      // 容错放行
+    }
+  })();
 
-  if (shouldStop() || !document.fonts) return;
-  await Promise.all(BUILTIN_FONT_LOAD_SPECS.map((spec) => document.fonts.load(spec).catch(() => [])));
+  const timeoutPromise = new Promise<void>((resolve) => window.setTimeout(resolve, 1500));
+  await Promise.race([prewarmTask, timeoutPromise]);
+}
+
+async function warmThemeUserFont(fontDataUrl: string | undefined): Promise<void> {
+  if (typeof window === "undefined" || !fontDataUrl || !("fonts" in document)) return;
+  try {
+    const font = new FontFace("AIVirtualPhoneUserFont", `url(${fontDataUrl})`);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      window.setTimeout(() => reject(new Error("Theme font load timeout")), 1500)
+    );
+    await Promise.race([font.load(), timeoutPromise]);
+    document.fonts.add(font);
+  } catch {
+    // 超时或失败静默放行，用兜底字体
+  }
 }
 
 function SplashScreen({ ready = false, onEnter }: { ready?: boolean; onEnter?: () => void }) {
@@ -240,7 +271,11 @@ export function MainApp() {
     // （摊主钥匙、聊天记录等都存在里面）。静默尽力而为，被拒也无碍。
     void navigator.storage?.persist?.().catch(() => {});
 
+    // 字体预热与 KV 水合并行发起，两者互不依赖，串行只会白白拉长开机时间
+    const fontPrewarmPromise = warmEssentialFonts(() => cancelled);
+
     void (async () => {
+      // 主题资产准备依赖 KV 内存缓存（readThemeProfile），必须等 KV 水合先完成
       await hydrateKvDb();
       if (cancelled) return;
       // 水合失败绝不放行：此时所有 KV 数据（设置/绑定/线下记录等）在内存里都是
@@ -257,6 +292,17 @@ export function MainApp() {
       } catch (error) {
         console.warn("[MainApp] desktop theme preload failed:", error);
       }
+
+      // 若当前主题设置了用户字体，并行预热该字体（使用 AIVirtualPhoneUserFont 家族名）
+      if (nextPreparedTheme?.profile.fontAssetId) {
+        const fontDataUrl = nextPreparedTheme.assets[nextPreparedTheme.profile.fontAssetId];
+        if (fontDataUrl) {
+          await warmThemeUserFont(fontDataUrl);
+        }
+      }
+
+      // 等待关键字体预热完成（内部已有 1.5 秒超时兜底）
+      await fontPrewarmPromise;
 
       if (cancelled) return;
       setPreparedDesktopTheme(nextPreparedTheme);

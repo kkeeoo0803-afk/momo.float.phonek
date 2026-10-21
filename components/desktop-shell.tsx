@@ -1154,6 +1154,9 @@ export function DesktopShell({ initialThemeProfile, initialThemeAssets }: Deskto
   }, []);
 
   const [themeAssets, setThemeAssets] = useState<Record<string, string>>(() => initialThemeAssets ?? {});
+  // 已加载资产去重账本，避免对已从首屏预加载的数据重复往返 IndexedDB
+  const loadedAssetIdsRef = useRef<Set<string>>(new Set(Object.keys(initialThemeAssets ?? {})));
+  const isFirstThemeSyncRef = useRef(true);
   const [slotIconWidth, setSlotIconWidth] = useState<number | null>(null);
   const [slotIconHeight, setSlotIconHeight] = useState<number | null>(null);
   const [slotRowStep, setSlotRowStep] = useState<number | null>(null);
@@ -1985,20 +1988,58 @@ export function DesktopShell({ initialThemeProfile, initialThemeAssets }: Deskto
 
   useEffect(() => {
     const ids = collectThemeAssetIds(draftTheme);
-    if (ids.length === 0) {
+    const missingIds = ids.filter((id) => !loadedAssetIdsRef.current.has(id));
+    if (missingIds.length === 0) {
       return;
     }
 
     let disposed = false;
-    void getThemeAssetMap(ids).then((map) => {
-      if (disposed) {
-        return;
+    let idleHandle: number | null = null;
+    let timerHandle: number | null = null;
+    const isFirstRun = isFirstThemeSyncRef.current;
+
+    const runFetch = () => {
+      void getThemeAssetMap(missingIds).then((map) => {
+        if (disposed) {
+          return;
+        }
+        // 记账放在成功回调里：确保 React StrictMode 中断时未完成的资产不会被误认为已存在
+        Object.keys(map).forEach((id) => loadedAssetIdsRef.current.add(id));
+        isFirstThemeSyncRef.current = false;
+        setThemeAssets((previous) => ({ ...previous, ...map }));
+      });
+    };
+
+    if (isFirstRun) {
+      // 开机首轮补读推到首帧空闲期（requestIdleCallback，带 timeout 兜底）
+      const idleWindow = typeof window !== "undefined" ? (window as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+        cancelIdleCallback?: (handle: number) => void;
+      }) : null;
+
+      if (idleWindow && typeof idleWindow.requestIdleCallback === "function") {
+        idleHandle = idleWindow.requestIdleCallback(runFetch, { timeout: 2000 });
+      } else {
+        timerHandle = window.setTimeout(runFetch, 200);
       }
-      setThemeAssets((previous) => ({ ...previous, ...map }));
-    });
+    } else {
+      // 用户主动换肤触发的补读必须立即生效
+      runFetch();
+    }
 
     return () => {
       disposed = true;
+      if (idleHandle !== null) {
+        const idleWindow = window as Window & { cancelIdleCallback?: (handle: number) => void };
+        idleWindow.cancelIdleCallback?.(idleHandle);
+      }
+      if (timerHandle !== null) {
+        window.clearTimeout(timerHandle);
+      }
+      // StrictMode 容错：若首轮未在卸载前成功完成，回滚首轮标记，让重新挂载时能再次触发空闲补读
+      if (isFirstRun) {
+        isFirstThemeSyncRef.current = true;
+      }
     };
   }, [draftTheme, themeAssetKey]);
 
