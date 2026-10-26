@@ -65,6 +65,8 @@ function pickLaterTime(a?: string | null, b?: string | null): string {
  * 只在线下聊过的会话（或线上记录被清空的会话）不该从列表里消失。
  */
 function hasSessionListContent(sessionId: string): boolean {
+    const sess = loadChatSessions().find(s => s.id === sessionId);
+    if (sess?.isGroup) return true;
     return Boolean(getLastVisibleSessionMessage(sessionId)) || Boolean(getLastChatOfflineTurn(sessionId));
 }
 
