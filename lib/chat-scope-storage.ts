@@ -101,12 +101,14 @@ export function characterMatchesChatScope(characterId: string, scope = loadChatS
     return true;
 }
 
-export function groupMatchesChatScope(participantIds: string[] | undefined, scope = loadChatScope(), _isSpectator?: boolean): boolean {
+export function groupMatchesChatScope(participantIds: string[] | undefined, scope = loadChatScope()): boolean {
     const ids = (participantIds || []).filter(Boolean);
-    // 群聊不因切换单人身份而隐藏，群聊始终在全部身份下可见；如筛选了世界观则要求群成员包含该世界观角色
+    if (scope.userIdentityId && resolveBoundUserIdentityId(undefined, "group_chat") !== scope.userIdentityId) {
+        return false;
+    }
     if (scope.worldId) {
         if (ids.length === 0) return false;
-        return ids.some(characterId => getCharacterWorldGroupId(characterId) === scope.worldId);
+        return ids.every(characterId => getCharacterWorldGroupId(characterId) === scope.worldId);
     }
     return true;
 }

@@ -65,8 +65,6 @@ function pickLaterTime(a?: string | null, b?: string | null): string {
  * 只在线下聊过的会话（或线上记录被清空的会话）不该从列表里消失。
  */
 function hasSessionListContent(sessionId: string): boolean {
-    const sess = loadChatSessions().find(s => s.id === sessionId);
-    if (sess?.isGroup) return true;
     return Boolean(getLastVisibleSessionMessage(sessionId)) || Boolean(getLastChatOfflineTurn(sessionId));
 }
 
@@ -319,14 +317,13 @@ export function ChatMessageList({ onCloseApp, activeSession, onSelectSession, on
                                 && (!keyword || (mascotSettings.nickname || "AI助手").toLowerCase().includes(keyword));
                             const regularItems = [...sessions]
                             .filter(s => {
-                                if (s.isGroup) {
-                                    // 群聊（含围观群）不参与任何用户单人身份过滤，直接通过
-                                    if (chatScope.worldId && !groupMatchesChatScope(s.participantIds, chatScope, s.isSpectator)) return false;
-                                    return hasSessionListContent(s.id);
-                                }
                                 if (!sessionMatchesChatScope(s, chatScope)) return false;
-                                if (!contactIds.has(s.contactId)) return false;
-                                if (!characterMatchesChatScope(s.contactId, chatScope)) return false;
+                                if (!(s.isGroup || contactIds.has(s.contactId))) return false;
+                                if (s.isGroup) {
+                                    if (!groupMatchesChatScope(s.participantIds, chatScope)) return false;
+                                } else if (!characterMatchesChatScope(s.contactId, chatScope)) {
+                                    return false;
+                                }
                                 if (!hasSessionListContent(s.id)) return false;
                                 if (listTab === "private" && s.isGroup) return false;
                                 if (listTab === "group" && !s.isGroup) return false;
