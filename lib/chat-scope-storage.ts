@@ -103,8 +103,12 @@ export function characterMatchesChatScope(characterId: string, scope = loadChatS
 
 export function groupMatchesChatScope(participantIds: string[] | undefined, scope = loadChatScope()): boolean {
     const ids = (participantIds || []).filter(Boolean);
-    if (scope.userIdentityId && resolveBoundUserIdentityId(undefined, "group_chat") !== scope.userIdentityId) {
-        return false;
+    if (scope.userIdentityId) {
+        const boundIdentity = resolveBoundUserIdentityId(undefined, "group_chat");
+        const hasMemberWithIdentity = ids.some(charId => resolveBoundUserIdentityId(charId, "chat") === scope.userIdentityId);
+        if (boundIdentity !== scope.userIdentityId && !hasMemberWithIdentity) {
+            return false;
+        }
     }
     if (scope.worldId) {
         if (ids.length === 0) return false;
