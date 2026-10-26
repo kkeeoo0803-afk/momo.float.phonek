@@ -101,9 +101,10 @@ export function characterMatchesChatScope(characterId: string, scope = loadChatS
     return true;
 }
 
-export function groupMatchesChatScope(participantIds: string[] | undefined, scope = loadChatScope()): boolean {
+export function groupMatchesChatScope(participantIds: string[] | undefined, scope = loadChatScope(), isSpectator?: boolean): boolean {
     const ids = (participantIds || []).filter(Boolean);
-    if (scope.userIdentityId) {
+    // 围观模式下用户未入群，不强校验用户身份绑定；普通群聊当群聊绑定匹配或任一成员绑定匹配时通过
+    if (scope.userIdentityId && !isSpectator) {
         const boundIdentity = resolveBoundUserIdentityId(undefined, "group_chat");
         const hasMemberWithIdentity = ids.some(charId => resolveBoundUserIdentityId(charId, "chat") === scope.userIdentityId);
         if (boundIdentity !== scope.userIdentityId && !hasMemberWithIdentity) {
@@ -112,7 +113,8 @@ export function groupMatchesChatScope(participantIds: string[] | undefined, scop
     }
     if (scope.worldId) {
         if (ids.length === 0) return false;
-        return ids.every(characterId => getCharacterWorldGroupId(characterId) === scope.worldId);
+        // 群内有成员属于当前筛选的世界观即可展示（或全部成员匹配）
+        return ids.some(characterId => getCharacterWorldGroupId(characterId) === scope.worldId);
     }
     return true;
 }

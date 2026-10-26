@@ -320,7 +320,7 @@ export function ChatMessageList({ onCloseApp, activeSession, onSelectSession, on
                                 if (!sessionMatchesChatScope(s, chatScope)) return false;
                                 if (!(s.isGroup || contactIds.has(s.contactId))) return false;
                                 if (s.isGroup) {
-                                    if (!groupMatchesChatScope(s.participantIds, chatScope)) return false;
+                                    if (!groupMatchesChatScope(s.participantIds, chatScope, s.isSpectator)) return false;
                                 } else if (!characterMatchesChatScope(s.contactId, chatScope)) {
                                     return false;
                                 }
