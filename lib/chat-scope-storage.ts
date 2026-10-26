@@ -101,19 +101,11 @@ export function characterMatchesChatScope(characterId: string, scope = loadChatS
     return true;
 }
 
-export function groupMatchesChatScope(participantIds: string[] | undefined, scope = loadChatScope(), isSpectator?: boolean): boolean {
+export function groupMatchesChatScope(participantIds: string[] | undefined, scope = loadChatScope(), _isSpectator?: boolean): boolean {
     const ids = (participantIds || []).filter(Boolean);
-    // 围观模式下用户未入群，不强校验用户身份绑定；普通群聊当群聊绑定匹配或任一成员绑定匹配时通过
-    if (scope.userIdentityId && !isSpectator) {
-        const boundIdentity = resolveBoundUserIdentityId(undefined, "group_chat");
-        const hasMemberWithIdentity = ids.some(charId => resolveBoundUserIdentityId(charId, "chat") === scope.userIdentityId);
-        if (boundIdentity !== scope.userIdentityId && !hasMemberWithIdentity) {
-            return false;
-        }
-    }
+    // 群聊不因切换单人身份而隐藏，群聊始终在全部身份下可见；如筛选了世界观则要求群成员包含该世界观角色
     if (scope.worldId) {
         if (ids.length === 0) return false;
-        // 群内有成员属于当前筛选的世界观即可展示（或全部成员匹配）
         return ids.some(characterId => getCharacterWorldGroupId(characterId) === scope.worldId);
     }
     return true;
