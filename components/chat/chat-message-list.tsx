@@ -317,13 +317,14 @@ export function ChatMessageList({ onCloseApp, activeSession, onSelectSession, on
                                 && (!keyword || (mascotSettings.nickname || "AI助手").toLowerCase().includes(keyword));
                             const regularItems = [...sessions]
                             .filter(s => {
-                                if (!sessionMatchesChatScope(s, chatScope)) return false;
-                                if (!(s.isGroup || contactIds.has(s.contactId))) return false;
                                 if (s.isGroup) {
-                                    if (!groupMatchesChatScope(s.participantIds, chatScope, s.isSpectator)) return false;
-                                } else if (!characterMatchesChatScope(s.contactId, chatScope)) {
-                                    return false;
+                                    // 群聊（含围观群）不参与任何用户单人身份过滤，直接通过
+                                    if (chatScope.worldId && !groupMatchesChatScope(s.participantIds, chatScope, s.isSpectator)) return false;
+                                    return hasSessionListContent(s.id);
                                 }
+                                if (!sessionMatchesChatScope(s, chatScope)) return false;
+                                if (!contactIds.has(s.contactId)) return false;
+                                if (!characterMatchesChatScope(s.contactId, chatScope)) return false;
                                 if (!hasSessionListContent(s.id)) return false;
                                 if (listTab === "private" && s.isGroup) return false;
                                 if (listTab === "group" && !s.isGroup) return false;
